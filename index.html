@@ -1377,38 +1377,41 @@ loadDB();render();initMoneyMasks();autoLabelTables();
 
 // ── MÁSCARA MONETÁRIA BRASILEIRA ──
 function maskMoney(el){
-  el.addEventListener('input',function(e){
-    // Pega só os dígitos digitados
-    var digits = this.value.replace(/\D/g,'');
-    if(digits === '') { this.value = ''; return; }
-    // Converte para centavos: últimos 2 dígitos são centavos
-    var num = parseInt(digits, 10);
-    var cents = num % 100;
-    var reais = Math.floor(num / 100);
-    // Formata reais com ponto de milhar
-    var reaisStr = reais.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    this.value = reaisStr + ',' + cents.toString().padStart(2,'0');
+  el.addEventListener('input',function(){
+    var raw = this.value.replace(/\D/g,'');
+    if(raw === ''){ this.value = ''; return; }
+    // Remove leading zeros
+    raw = raw.replace(/^0+/,'') || '0';
+    // Pad to at least 3 digits
+    while(raw.length < 3) raw = '0' + raw;
+    // Last 2 digits = cents, rest = reais
+    var cents = raw.slice(-2);
+    var reais = raw.slice(0, -2);
+    // Remove leading zeros from reais
+    reais = reais.replace(/^0+/,'') || '0';
+    // Add thousand separators
+    reais = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    this.value = reais + ',' + cents;
   });
 }
 function parseMoney(s){
-  if(!s || s === '') return 0;
-  // Remove pontos de milhar, troca vírgula por ponto
+  if(!s || s==='') return 0;
   var clean = s.toString().replace(/\./g,'').replace(',','.');
   var val = parseFloat(clean);
   return isNaN(val) ? 0 : val;
 }
-function fillMoney(id,val){
+function fillMoney(id, val){
   var el = document.getElementById(id);
   if(!el) return;
-  var num = Math.round((val||0) * 100);
-  var cents = num % 100;
-  var reais = Math.floor(num / 100);
+  var total = Math.round((val||0) * 100);
+  var cents = total % 100;
+  var reais = Math.floor(total / 100);
   var reaisStr = reais.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   el.value = reaisStr + ',' + cents.toString().padStart(2,'0');
 }
 function initMoneyMasks(){
   ['e-valor','cf-valor','col-sal','div-total','div-parcela','gp-valor','prod-vunit','col-com'].forEach(function(id){
-    var el=document.getElementById(id);
+    var el = document.getElementById(id);
     if(el){
       el.setAttribute('type','text');
       el.setAttribute('inputmode','numeric');
