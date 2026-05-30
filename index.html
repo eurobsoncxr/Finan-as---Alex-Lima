@@ -1377,27 +1377,34 @@ loadDB();render();initMoneyMasks();autoLabelTables();
 
 // ── MÁSCARA MONETÁRIA BRASILEIRA ──
 function maskMoney(el){
-  el.addEventListener('input',function(){
-    var v=this.value.replace(/\D/g,'');
-    v=(parseInt(v)||0).toString();
-    while(v.length<3)v='0'+v;
-    var cents=v.slice(-2);
-    var reais=v.slice(0,-2).replace(/^0+/,'')||'0';
-    reais=reais.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-    this.value=reais+','+cents;
+  el.addEventListener('input',function(e){
+    // Pega só os dígitos digitados
+    var digits = this.value.replace(/\D/g,'');
+    if(digits === '') { this.value = ''; return; }
+    // Converte para centavos: últimos 2 dígitos são centavos
+    var num = parseInt(digits, 10);
+    var cents = num % 100;
+    var reais = Math.floor(num / 100);
+    // Formata reais com ponto de milhar
+    var reaisStr = reais.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    this.value = reaisStr + ',' + cents.toString().padStart(2,'0');
   });
 }
 function parseMoney(s){
-  if(!s)return 0;
-  return parseFloat(s.replace(/\./g,'').replace(',','.'))||0;
+  if(!s || s === '') return 0;
+  // Remove pontos de milhar, troca vírgula por ponto
+  var clean = s.toString().replace(/\./g,'').replace(',','.');
+  var val = parseFloat(clean);
+  return isNaN(val) ? 0 : val;
 }
 function fillMoney(id,val){
-  var cents=Math.round((val||0)*100).toString().padStart(3,'0');
-  var c=cents.slice(-2);
-  var r=cents.slice(0,-2).replace(/^0+/,'')||'0';
-  r=r.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-  var el=document.getElementById(id);
-  if(el)el.value=r+','+c;
+  var el = document.getElementById(id);
+  if(!el) return;
+  var num = Math.round((val||0) * 100);
+  var cents = num % 100;
+  var reais = Math.floor(num / 100);
+  var reaisStr = reais.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  el.value = reaisStr + ',' + cents.toString().padStart(2,'0');
 }
 function initMoneyMasks(){
   ['e-valor','cf-valor','col-sal','div-total','div-parcela','gp-valor','prod-vunit','col-com'].forEach(function(id){
